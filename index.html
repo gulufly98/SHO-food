@@ -376,7 +376,7 @@
 <script>
 // ==============================================
 // 只需要改这里：换成你的腾讯文档表格链接
-const SHEET_URL = "https://github.com/gulufly98/SHO-food/blob/3f61cc4adfc89fef54ee46f8799212039d674737/what%20to%20eat-%E5%B7%A5%E4%BD%9C%E8%A1%A81.csv";
+const SHEET_URL = "https://gulufly98.github.io/SHO-food/restaurants.csv";
 // 反馈表单不变
 const FEEDBACK_FORM_URL = "https://docs.qq.com/form/page/xxxxxx";
 // ==============================================
@@ -388,45 +388,43 @@ const TODAY_KEY = "infinia_food_today";
 const EXCLUDE_KEY = "infinia_food_exclude";
 
 window.onload = async function () {
-    initLocalData();
-    await loadRestaurantsFromSheet();  // 从腾讯文档拉取
-    initCollapsePanel();
-    initTypeCheckboxes();
-    initExcludeList();
-    bindEvents();
-    randomRestaurant();
+  initLocalData();
+  await loadRestaurantsFromCSV(); // 这里改
+  initCollapsePanel();
+  initTypeCheckboxes();
+  initExcludeList();
+  bindEvents();
+  randomRestaurant();
 };
 
 // 从腾讯文档读取数据
-async function loadRestaurantsFromSheet() {
-    try {
-        document.getElementById("randomBtn").disabled = true;
-        document.getElementById("randomBtn").innerText = "加载餐厅中...";
-
-        const res = await fetch(SHEET_URL);
-        const text = await res.text();
-
-        const rows = text.match(/\n.*/g)
-            .map(row => row.replace(/^\t/, "").split("\t"))
-            .filter(row => row[0] && row[0] !== "name");
-
-        restaurantList = rows.map((row, idx) => ({
-            id: idx + 1,
-            name: row[0] || "",
-            price: parseInt(row[1]) || 0,
-            distance: parseInt(row[2]) || 99,
-            type: row[3] || "其他",
-            address: row[4] || "",
-            recommend: row[5] || ""
-        }));
-
-        document.getElementById("randomBtn").disabled = false;
-        document.getElementById("randomBtn").innerText = "随机今日干饭";
-    } catch (e) {
-        alert("加载餐厅失败，请检查表格是否公开");
-        document.getElementById("randomBtn").disabled = false;
-        document.getElementById("randomBtn").innerText = "重新加载";
-    }
+async function loadRestaurantsFromCSV() {
+  try {
+    document.getElementById("randomBtn").disabled = true;
+    document.getElementById("randomBtn").innerText = "加载中...";
+    const res = await fetch(CSV_URL);
+    const text = await res.text();
+    const lines = text.split("\n").filter(line => line.trim());
+    const headers = lines[0].split(",");
+    restaurantList = lines.slice(1).map((line, idx) => {
+      const cols = line.split(",");
+      return {
+        id: idx + 1,
+        name: cols[0] || "",
+        price: parseInt(cols[1]) || 0,
+        distance: parseInt(cols[2]) || 99,
+        type: cols[3] || "其他",
+        address: cols[4] || "",
+        recommend: cols[5] || ""
+      };
+    });
+    document.getElementById("randomBtn").disabled = false;
+    document.getElementById("randomBtn").innerText = "随机今日干饭";
+  } catch (e) {
+    alert("加载失败：" + e.message);
+    document.getElementById("randomBtn").disabled = false;
+    document.getElementById("randomBtn").innerText = "重试";
+  }
 }
 
 // 下面所有逻辑完全不变，我就不重复注释了
