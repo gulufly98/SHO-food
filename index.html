@@ -205,25 +205,35 @@
             margin-bottom: 8px;
             display: block;
         }
-        .price-range, .distance-range {
-            width: 100%;
+        /* 区间选择样式（复用） */
+        .range-options {
             display: flex;
-            gap: 12px;
-            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
         }
-        .range-input {
+        .range-option {
             flex: 1;
-            height: 40px;
+            min-width: 80px;
+        }
+        .range-option input {
+            display: none;
+        }
+        .range-option label {
+            display: block;
+            padding: 10px 8px;
             border: 1px solid var(--accent-light);
             border-radius: 8px;
-            padding: 0 12px;
+            text-align: center;
             font-size: 14px;
-            background-color: var(--bg-main);
+            cursor: pointer;
+            transition: all 0.2s ease;
         }
-        .range-input:focus {
-            outline: none;
+        .range-option input:checked + label {
+            background-color: var(--accent);
+            color: var(--white);
             border-color: var(--accent);
         }
+        /* 原有样式 */
         .type-checkboxes {
             display: flex;
             flex-wrap: wrap;
@@ -337,16 +347,56 @@
         </div>
         <div class="collapse-content" id="filterContent">
             <div class="filter-group">
-                <label class="filter-label">人均价格区间（元）</label>
-                <div class="price-range">
-                    <input type="number" class="range-input" id="priceMin" placeholder="最低">
-                    <span>—</span>
-                    <input type="number" class="range-input" id="priceMax" placeholder="最高">
+                <label class="filter-label">人均价格区间</label>
+                <div class="range-options" id="priceOptions">
+                    <div class="range-option">
+                        <input type="radio" name="priceRange" id="priceUnder100" value="under100">
+                        <label for="priceUnder100">100元以下</label>
+                    </div>
+                    <div class="range-option">
+                        <input type="radio" name="priceRange" id="price100To200" value="100to200">
+                        <label for="price100To200">100-200元</label>
+                    </div>
+                    <div class="range-option">
+                        <input type="radio" name="priceRange" id="priceOver200" value="over200">
+                        <label for="priceOver200">200元以上</label>
+                    </div>
                 </div>
             </div>
             <div class="filter-group">
-                <label class="filter-label">步行时长上限（分钟）</label>
-                <input type="number" class="range-input" id="distanceMax" placeholder="例如：15">
+                <label class="filter-label">步行时长</label>
+                <div class="range-options" id="distanceOptions">
+                    <div class="range-option">
+                        <input type="radio" name="distanceRange" id="distanceUnder5" value="under5">
+                        <label for="distanceUnder5">5分钟内</label>
+                    </div>
+                    <div class="range-option">
+                        <input type="radio" name="distanceRange" id="distance5To10" value="5to10">
+                        <label for="distance5To10">5-10分钟</label>
+                    </div>
+                    <div class="range-option">
+                        <input type="radio" name="distanceRange" id="distanceOver10" value="over10">
+                        <label for="distanceOver10">10分钟以上</label>
+                    </div>
+                </div>
+            </div>
+            <!-- 新增：速度筛选条件 -->
+            <div class="filter-group">
+                <label class="filter-label">用餐/出餐速度</label>
+                <div class="range-options" id="speedOptions">
+                    <div class="range-option">
+                        <input type="radio" name="speedRange" id="speedUnder20" value="under20">
+                        <label for="speedUnder20">20分钟内</label>
+                    </div>
+                    <div class="range-option">
+                        <input type="radio" name="speedRange" id="speed20To40" value="20to40">
+                        <label for="speed20To40">20-40分钟</label>
+                    </div>
+                    <div class="range-option">
+                        <input type="radio" name="speedRange" id="speedOver40" value="over40">
+                        <label for="speedOver40">40分钟以上</label>
+                    </div>
+                </div>
             </div>
             <div class="filter-group">
                 <label class="filter-label">菜系选择</label>
@@ -365,7 +415,6 @@
             <p class="exclude-tip">勾选后不会出现在结果里</p>
             <div class="action-btns" style="margin-top:16px;margin-bottom:0;">
                 <button class="action-btn" id="clearExcludeBtn">清空排除</button>
-                <button class="action-btn primary" id="excludeTodayBtn">排除今日已选</button>
             </div>
         </div>
     </div>
@@ -375,21 +424,18 @@
 
 <script>
 // ==============================================
-// 只需要改这里：换成你的腾讯文档表格链接
+// 替换为你的CSV地址
 const CSV_URL = "https://gulufly98.github.io/SHO-food/restaurants.csv";
-// 反馈表单不变
 const FEEDBACK_FORM_URL = "https://docs.qq.com/form/page/xxxxxx";
 // ==============================================
 
 let restaurantList = [];
-let todaySelected = [];
 let excludedIds = [];
-const TODAY_KEY = "infinia_food_today";
 const EXCLUDE_KEY = "infinia_food_exclude";
 
 window.onload = async function () {
   initLocalData();
-  await loadRestaurantsFromCSV(); // 这里改
+  await loadRestaurantsFromCSV();
   initCollapsePanel();
   initTypeCheckboxes();
   initExcludeList();
@@ -397,7 +443,7 @@ window.onload = async function () {
   randomRestaurant();
 };
 
-// 从腾讯文档读取数据
+// 从CSV读取数据（新增speed列解析）
 async function loadRestaurantsFromCSV() {
   try {
     document.getElementById("randomBtn").disabled = true;
@@ -413,6 +459,7 @@ async function loadRestaurantsFromCSV() {
         name: cols[0] || "",
         price: parseInt(cols[1]) || 0,
         distance: parseInt(cols[2]) || 99,
+        speed: parseInt(cols[6]) || 0, // 新增：解析speed列（第7列，索引6）
         type: cols[3] || "其他",
         address: cols[4] || "",
         recommend: cols[5] || ""
@@ -427,19 +474,12 @@ async function loadRestaurantsFromCSV() {
   }
 }
 
-// 下面所有逻辑完全不变，我就不重复注释了
+// 初始化本地数据
 function initLocalData() {
-    const todayData = JSON.parse(localStorage.getItem(TODAY_KEY) || "{}");
-    const today = new Date().toDateString();
-    if (todayData.date === today) {
-        todaySelected = todayData.list || [];
-    } else {
-        todaySelected = [];
-        saveTodayData();
-    }
     excludedIds = JSON.parse(localStorage.getItem(EXCLUDE_KEY) || "[]");
 }
 
+// 初始化折叠面板
 function initCollapsePanel() {
     document.querySelectorAll(".collapse-header").forEach(header => {
         header.addEventListener("click", () => {
@@ -450,6 +490,7 @@ function initCollapsePanel() {
     });
 }
 
+// 初始化菜系选择
 function initTypeCheckboxes() {
     const allTypes = [...new Set(restaurantList.map(i => i.type))];
     const box = document.getElementById("typeCheckboxes");
@@ -466,6 +507,7 @@ function initTypeCheckboxes() {
     });
 }
 
+// 初始化排除列表（新增speed显示）
 function initExcludeList() {
     const box = document.getElementById("excludeList");
     box.innerHTML = "";
@@ -473,8 +515,9 @@ function initExcludeList() {
         const item = document.createElement("label");
         item.className = "exclude-item";
         const checked = excludedIds.includes(r.id) ? "checked" : "";
+        // 新增：排除列表显示速度信息
         item.innerHTML = `<input type="checkbox" value="${r.id}" ${checked}>
-            <span>${r.name} | ${r.distance}分钟 | ¥${r.price}</span>`;
+            <span>${r.name} | ${r.distance}分钟 | ¥${r.price} | 速度${r.speed}分钟</span>`;
         item.querySelector("input").addEventListener("change", e => {
             const id = parseInt(e.target.value);
             if (e.target.checked) {
@@ -488,6 +531,7 @@ function initExcludeList() {
     });
 }
 
+// 绑定事件
 function bindEvents() {
     document.getElementById("randomBtn").onclick = randomRestaurant;
     document.getElementById("clearExcludeBtn").onclick = () => {
@@ -495,31 +539,48 @@ function bindEvents() {
         localStorage.setItem(EXCLUDE_KEY, "[]");
         initExcludeList();
     };
-    document.getElementById("excludeTodayBtn").onclick = () => {
-        todaySelected.forEach(id => {
-            if (!excludedIds.includes(id)) excludedIds.push(id);
-        });
-        localStorage.setItem(EXCLUDE_KEY, JSON.stringify(excludedIds));
-        initExcludeList();
-        alert("已排除今日已选");
-    };
     document.getElementById("feedbackBtn").onclick = () => {
         window.open(FEEDBACK_FORM_URL);
     };
 }
 
+// 核心：随机餐厅（新增speed筛选逻辑）
 function randomRestaurant() {
-    const priceMin = +document.getElementById("priceMin").value || 0;
-    const priceMax = +document.getElementById("priceMax").value || 9999;
-    const distanceMax = +document.getElementById("distanceMax").value || 999;
+    // 1. 获取各筛选条件
+    const selectedPrice = document.querySelector('input[name="priceRange"]:checked')?.value;
+    const selectedDistance = document.querySelector('input[name="distanceRange"]:checked')?.value;
+    const selectedSpeed = document.querySelector('input[name="speedRange"]:checked')?.value; // 新增
     const types = Array.from(document.querySelectorAll("#typeCheckboxes input:checked")).map(i => i.value);
 
+    // 筛选逻辑
     let list = restaurantList.filter(r => {
+        // 排除勾选的餐厅
         if (excludedIds.includes(r.id)) return false;
-        if (todaySelected.includes(r.id)) return false;
-        if (r.price < priceMin || r.price > priceMax) return false;
-        if (r.distance > distanceMax) return false;
+        
+        // 价格区间筛选
+        if (selectedPrice) {
+            if (selectedPrice === "under100" && r.price >= 100) return false;
+            if (selectedPrice === "100to200" && (r.price < 100 || r.price > 200)) return false;
+            if (selectedPrice === "over200" && r.price <= 200) return false;
+        }
+
+        // 步行时间筛选
+        if (selectedDistance) {
+            if (selectedDistance === "under5" && r.distance > 5) return false;
+            if (selectedDistance === "5to10" && (r.distance <= 5 || r.distance > 10)) return false;
+            if (selectedDistance === "over10" && r.distance <= 10) return false;
+        }
+
+        // 新增：速度筛选逻辑
+        if (selectedSpeed) {
+            if (selectedSpeed === "under20" && r.speed > 20) return false;
+            if (selectedSpeed === "20to40" && (r.speed <= 20 || r.speed > 40)) return false;
+            if (selectedSpeed === "over40" && r.speed <= 40) return false;
+        }
+
+        // 菜系筛选
         if (types.length && !types.includes(r.type)) return false;
+
         return true;
     });
 
@@ -528,18 +589,17 @@ function randomRestaurant() {
         return;
     }
 
+    // 随机排序
     list = list.sort(() => Math.random() - 0.5);
     const main = list[0];
     const alts = list.slice(1, 3);
 
-    todaySelected.push(main.id);
-    alts.forEach(a => todaySelected.push(a.id));
-    saveTodayData();
-
+    // 渲染结果
     renderMain(main);
     renderAlt(alts);
 }
 
+// 渲染首选结果（新增speed显示）
 function renderMain(r) {
     document.getElementById("mainResult").innerHTML = `
     <div class="result-card main">
@@ -555,6 +615,10 @@ function renderMain(r) {
                 <span class="info-value">${r.distance}分钟</span>
             </div>
             <div class="info-item">
+                <span class="info-label">速度</span> <!-- 新增 -->
+                <span class="info-value">${r.speed}分钟</span> <!-- 新增 -->
+            </div>
+            <div class="info-item">
                 <span class="info-label">菜系</span>
                 <span class="info-value">${r.type}</span>
             </div>
@@ -562,14 +626,20 @@ function renderMain(r) {
                 <span class="info-label">地址</span>
                 <span class="info-value">${r.address || "无"}</span>
             </div>
+            <!-- 补充一行占位，保持排版美观 -->
+            <div class="info-item"></div>
         </div>
         ${r.recommend ? `<div class="recommend">推荐：${r.recommend}</div>` : ""}
     </div>`;
 }
 
+// 渲染备选结果（新增speed显示）
 function renderAlt(list) {
     const cont = document.getElementById("alternateResult");
-    if (!list.length) { cont.innerHTML = ""; return; }
+    if (!list.length) { 
+        cont.innerHTML = ""; 
+        return; 
+    }
     let html = `<div class="alternate-title">备选方案</div><div class="alternate-list">`;
     list.forEach(r => {
         html += `
@@ -580,19 +650,13 @@ function renderAlt(list) {
             </div>
             <div class="info-row">
                 <span>${r.distance}分钟</span>
+                <span>${r.speed}分钟</span> <!-- 新增：速度 -->
                 <span>${r.type}</span>
             </div>
         </div>`;
     });
     html += "</div>";
     cont.innerHTML = html;
-}
-
-function saveTodayData() {
-    localStorage.setItem(TODAY_KEY, JSON.stringify({
-        date: new Date().toDateString(),
-        list: todaySelected
-    }));
 }
 </script>
 </body>
