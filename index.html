@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="format-detection" content="telephone=no">
     <title>无限极大厦干饭选择器</title>
     <style>
@@ -35,32 +36,66 @@
             max-width: 480px;
             margin: 0 auto;
         }
+        /* 重构header样式：调整标题位置+放大图片 */
         .header {
-            text-align: center;
-            margin-bottom: 32px;
-            padding-top: 20px;
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 24px;
+            padding-top: 16px;
         }
-        .header h1 {
-            font-size: 24px;
-            font-weight: 500;
-            letter-spacing: 2px;
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 8px;
         }
-        .header p {
+        .header-title-group {
+            display: flex;
+            align-items: center;
+            gap: 16px; /* 适配放大后的图片间距 */
+        }
+        .title-text-group {
+            display: flex;
+            flex-direction: column;
+            gap: 2px; /* 标题和副标题间距 */
+        }
+        .header h1 {
+            font-size: 22px;
+            font-weight: 500;
+            letter-spacing: 1px;
+            margin: 0;
+        }
+        .header .subtitle {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin: 0;
+            line-height: 1.2;
+        }
+        /* 顶部图片样式：放大至2倍（80px） */
+        .header-img {
+            width: 80px; /* 原40px → 放大2倍 */
+            height: 80px; /* 原40px → 放大2倍 */
+            border-radius: 8px;
+            object-fit: cover;
+        }
+        /* 时间&鼓励语样式 */
+        .header-time {
             font-size: 14px;
             color: var(--text-secondary);
+            line-height: 1.4;
+            padding-left: 2px;
         }
         .random-btn {
             width: 100%;
-            height: 56px;
+            height: 52px;
             background-color: var(--accent);
             color: var(--white);
             border: none;
             border-radius: var(--radius);
-            font-size: 18px;
+            font-size: 17px;
             font-weight: 500;
-            letter-spacing: 4px;
-            margin-bottom: 24px;
+            letter-spacing: 3px;
+            margin-bottom: 20px;
             cursor: pointer;
             box-shadow: var(--shadow);
             transition: all 0.3s ease;
@@ -73,11 +108,12 @@
             opacity: 0.5;
             cursor: not-allowed;
         }
+        /* 今日首选卡片：极致压缩+2行展示信息 */
         .result-card.main {
             background-color: var(--white);
             border-radius: var(--radius);
-            padding: 28px 24px;
-            margin-bottom: 20px;
+            padding: 16px 14px; /* 进一步缩小内边距 */
+            margin-bottom: 12px;
             box-shadow: var(--shadow);
             border: 1px solid var(--accent-light);
             animation: fadeIn 0.5s ease;
@@ -86,58 +122,62 @@
             display: inline-block;
             background-color: var(--accent);
             color: var(--white);
-            font-size: 12px;
-            padding: 4px 12px;
+            font-size: 10px;
+            padding: 2px 8px;
             border-radius: 20px;
-            margin-bottom: 16px;
+            margin-bottom: 6px;
             letter-spacing: 1px;
         }
         .result-card.main .restaurant-name {
-            font-size: 28px;
+            font-size: 20px; /* 进一步缩小餐厅名 */
             font-weight: 600;
-            margin-bottom: 16px;
+            margin-bottom: 6px;
+            line-height: 1.2;
         }
+        /* 核心调整：3列2行展示所有信息 */
         .result-card.main .info-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-bottom: 16px;
+            grid-template-columns: repeat(3, 1fr); /* 3列布局 */
+            gap: 4px; /* 极致缩小间距 */
+            margin-bottom: 6px;
         }
         .result-card.main .info-item {
             display: flex;
             flex-direction: column;
         }
         .result-card.main .info-label {
-            font-size: 12px;
+            font-size: 10px; /* 更小的标签字体 */
             color: var(--text-secondary);
-            margin-bottom: 2px;
+            margin-bottom: 0;
         }
         .result-card.main .info-value {
-            font-size: 16px;
+            font-size: 12px; /* 更小的数值字体 */
             font-weight: 500;
+            line-height: 1.2;
         }
         .result-card.main .recommend {
-            padding-top: 12px;
+            padding-top: 4px;
             border-top: 1px solid var(--accent-light);
-            font-size: 14px;
+            font-size: 11px;
             color: var(--text-secondary);
+            line-height: 1.3;
         }
         .alternate-title {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 500;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
             padding-left: 4px;
         }
         .alternate-list {
             display: flex;
             flex-direction: column;
-            gap: 12px;
-            margin-bottom: 32px;
+            gap: 10px;
+            margin-bottom: 28px;
         }
         .alternate-card {
             background-color: var(--white);
             border-radius: var(--radius);
-            padding: 16px 20px;
+            padding: 14px 18px;
             box-shadow: var(--shadow);
             animation: fadeIn 0.5s ease forwards;
             opacity: 0;
@@ -148,27 +188,27 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
         .alternate-card .restaurant-name {
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 500;
         }
         .alternate-card .info-row {
             display: flex;
-            gap: 16px;
-            font-size: 14px;
+            gap: 14px;
+            font-size: 13px;
             color: var(--text-secondary);
         }
         .collapse-panel {
             background-color: var(--white);
             border-radius: var(--radius);
-            margin-bottom: 16px;
+            margin-bottom: 14px;
             overflow: hidden;
             box-shadow: var(--shadow);
         }
         .collapse-header {
-            padding: 18px 20px;
+            padding: 16px 18px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -176,7 +216,7 @@
             user-select: none;
         }
         .collapse-header .title {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 500;
         }
         .collapse-header .arrow {
@@ -190,41 +230,40 @@
             max-height: 0;
             overflow: hidden;
             transition: max-height 0.3s ease;
-            padding: 0 20px;
+            padding: 0 18px;
         }
         .collapse-content.active {
             max-height: 1000px;
-            padding-bottom: 20px;
+            padding-bottom: 18px;
         }
         .filter-group {
-            margin-bottom: 20px;
+            margin-bottom: 18px;
         }
         .filter-label {
-            font-size: 14px;
+            font-size: 13px;
             color: var(--text-secondary);
-            margin-bottom: 8px;
+            margin-bottom: 7px;
             display: block;
         }
-        /* 区间选择样式（复用） */
         .range-options {
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 9px;
         }
         .range-option {
             flex: 1;
-            min-width: 80px;
+            min-width: 75px;
         }
         .range-option input {
             display: none;
         }
         .range-option label {
             display: block;
-            padding: 10px 8px;
+            padding: 9px 7px;
             border: 1px solid var(--accent-light);
             border-radius: 8px;
             text-align: center;
-            font-size: 14px;
+            font-size: 13px;
             cursor: pointer;
             transition: all 0.2s ease;
         }
@@ -233,20 +272,19 @@
             color: var(--white);
             border-color: var(--accent);
         }
-        /* 原有样式 */
         .type-checkboxes {
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 9px;
         }
         .checkbox-item {
             display: flex;
             align-items: center;
-            gap: 6px;
-            padding: 6px 12px;
+            gap: 5px;
+            padding: 5px 11px;
             border: 1px solid var(--accent-light);
             border-radius: 20px;
-            font-size: 14px;
+            font-size: 13px;
             cursor: pointer;
             transition: all 0.2s ease;
         }
@@ -261,37 +299,37 @@
         .exclude-list {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 9px;
             max-height: 300px;
             overflow-y: auto;
         }
         .exclude-item {
             display: flex;
             align-items: center;
-            gap: 8px;
-            font-size: 14px;
-            padding: 8px 0;
+            gap: 7px;
+            font-size: 13px;
+            padding: 7px 0;
         }
         .exclude-item input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
+            width: 17px;
+            height: 17px;
             accent-color: var(--accent);
         }
         .exclude-tip {
-            font-size: 12px;
+            font-size: 11px;
             color: var(--text-secondary);
-            margin-top: 12px;
+            margin-top: 10px;
         }
         .action-btns {
             display: flex;
-            gap: 12px;
-            margin-bottom: 32px;
+            gap: 11px;
+            margin-bottom: 28px;
         }
         .action-btn {
             flex: 1;
-            height: 44px;
+            height: 42px;
             border-radius: var(--radius);
-            font-size: 14px;
+            font-size: 13px;
             border: 1px solid var(--accent);
             background-color: transparent;
             color: var(--accent);
@@ -307,20 +345,20 @@
         }
         .feedback-btn {
             width: 100%;
-            height: 48px;
+            height: 46px;
             border: 1px solid var(--accent-light);
             background-color: var(--white);
             color: var(--accent);
             border-radius: var(--radius);
-            font-size: 15px;
+            font-size: 14px;
             cursor: pointer;
-            margin-bottom: 40px;
+            margin-bottom: 36px;
             transition: all 0.3s ease;
         }
         .feedback-btn:active {
             background-color: var(--accent-light);
         }
-        /* 新增加载状态样式 */
+        /* 加载状态样式 */
         .loading-overlay {
             position: fixed;
             top: 0;
@@ -335,6 +373,16 @@
             color: var(--accent);
             font-size: 16px;
         }
+        /* 新增：底部版权水印 */
+        .footer {
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-secondary);
+            opacity: 0.7;
+            margin-top: 20px;
+            padding-bottom: 20px;
+            line-height: 1.4;
+        }
         .hidden { display: none; }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
@@ -347,9 +395,20 @@
 </head>
 <body>
 <div class="container">
+    <!-- 重构header：调整标题位置+放大图片 -->
     <div class="header">
-        <h1>今天吃什么</h1>
-        <p>无限极大厦 · 干饭选择器</p>
+        <div class="header-top">
+            <div class="header-title-group">
+                <div class="title-text-group">
+                    <h1>今天吃什么</h1>
+                    <p class="subtitle">无限极大厦 · 干饭选择器</p>
+                </div>
+                <!-- 顶部图片：已放大2倍 -->
+                <img src="food-icon.jpg" alt="干饭图标" class="header-img">
+            </div>
+        </div>
+        <!-- 时间&鼓励语展示区 -->
+        <div class="header-time" id="headerTime"></div>
     </div>
 
     <button class="random-btn" id="randomBtn">随机今日干饭</button>
@@ -396,7 +455,6 @@
                     </div>
                 </div>
             </div>
-            <!-- 新增：速度筛选条件 -->
             <div class="filter-group">
                 <label class="filter-label">用餐/出餐速度</label>
                 <div class="range-options" id="speedOptions">
@@ -418,7 +476,6 @@
                 <label class="filter-label">菜系选择</label>
                 <div class="type-checkboxes" id="typeCheckboxes"></div>
             </div>
-            <!-- 新增：重置筛选按钮 -->
             <div class="action-btns" style="margin-top:20px;">
                 <button class="action-btn" id="resetFilterBtn">重置筛选条件</button>
             </div>
@@ -440,8 +497,10 @@
     </div>
 
     <button class="feedback-btn" id="feedbackBtn">推荐餐厅</button>
+
+    <!-- 新增：底部版权水印 -->
+    <div class="footer">© ${new Date().getFullYear()} YG 版权所有 | 无限极大厦干饭选择器</div>
 </div>
-<!-- 新增：加载状态遮罩 -->
 <div class="loading-overlay hidden" id="loadingOverlay">加载餐厅数据中...</div>
 
 <script>
@@ -457,8 +516,12 @@ const EXCLUDE_KEY = "infinia_food_exclude";
 
 window.onload = async function () {
   initLocalData();
+  // 初始化时间和鼓励语（立即执行+实时更新）
+  updateTimeAndMotivation();
+  setInterval(updateTimeAndMotivation, 1000);
+  
   const loading = document.getElementById("loadingOverlay");
-  loading.classList.remove("hidden"); // 显示加载状态
+  loading.classList.remove("hidden");
   try {
     await loadRestaurantsFromCSV();
     initCollapsePanel();
@@ -470,37 +533,83 @@ window.onload = async function () {
     console.error("初始化失败：", e);
     alert("初始化失败，请刷新页面重试！");
   } finally {
-    loading.classList.add("hidden"); // 隐藏加载状态
+    loading.classList.add("hidden");
   }
 };
 
-// 从CSV读取数据（完整解析逻辑 + 鲁棒性优化）
+// 新增：获取上海时间+生成牛马鼓励语
+function updateTimeAndMotivation() {
+  // 1. 获取上海时区的时间（UTC+8）
+  const shanghaiTime = new Date();
+  // 格式化日期：2026-02-23 16:50:30
+  const dateStr = shanghaiTime.toLocaleDateString('zh-CN', { 
+    year: 'numeric', 
+    month: '2-digit', 
+    day: '2-digit' 
+  });
+  // 格式化时间：16:50:30
+  const timeStr = shanghaiTime.toLocaleTimeString('zh-CN', { 
+    hour: '2-digit', 
+    minute: '2-digit', 
+    second: '2-digit',
+    timeZone: 'Asia/Shanghai'
+  });
+  // 格式化星期：周五
+  const weekStr = shanghaiTime.toLocaleDateString('zh-CN', { 
+    weekday: 'long',
+    timeZone: 'Asia/Shanghai'
+  });
+  const weekNum = shanghaiTime.getDay(); // 0=周日,1=周一...6=周六
+
+  // 2. 生成牛马鼓励语
+  let motivation = '';
+  switch(weekNum) {
+    case 1:
+      motivation = '周一打工魂，干饭才是真！';
+      break;
+    case 2:
+      motivation = '周二不算忙，干饭不慌～';
+      break;
+    case 3:
+      motivation = '周三冲一半，干饭继续干！';
+      break;
+    case 4:
+      motivation = '周四快收尾，干饭养精神！';
+      break;
+    case 5:
+      motivation = '周五了！再坚持一下就周末啦～';
+      break;
+    case 6:
+      motivation = '周六不打工，干饭要放纵！';
+      break;
+    case 0:
+      motivation = '周日歇歇脚，干饭没烦恼～';
+      break;
+  }
+
+  // 3. 渲染到页面
+  const timeEl = document.getElementById('headerTime');
+  timeEl.innerHTML = `${dateStr} ${timeStr} | ${weekStr} | ${motivation}`;
+}
+
+// 从CSV读取数据
 async function loadRestaurantsFromCSV() {
   try {
-    // 显式配置跨域和缓存
     const response = await fetch(CSV_URL, {
       method: "GET",
-      mode: "cors", // 强制开启跨域
-      cache: "no-cache", // 禁用缓存
-      headers: {
-        "Accept": "text/csv" // 指定接收CSV格式
-      }
+      mode: "cors",
+      cache: "no-cache",
+      headers: { "Accept": "text/csv" }
     });
 
-    // 检查请求是否成功
-    if (!response.ok) {
-      throw new Error(`请求失败，状态码：${response.status}`);
-    }
-
+    if (!response.ok) throw new Error(`请求失败，状态码：${response.status}`);
     const csvText = await response.text();
-    // 完整CSV解析逻辑
-    const lines = csvText.trim().split('\n').filter(line => line.trim()); // 过滤空行
+    const lines = csvText.trim().split('\n').filter(line => line.trim());
     if (lines.length <= 1) throw new Error("CSV数据为空或格式错误");
     
-    const headers = lines[0].split(',').map(h => h.trim()); // 提取表头
+    const headers = lines[0].split(',').map(h => h.trim());
     restaurantList = lines.slice(1).map((line, idx) => {
       const values = line.split(',').map(v => v.trim());
-      // 映射为餐厅对象，做类型转换和兜底
       return {
         id: parseInt(values[headers.indexOf('id')] || idx + 1),
         name: values[headers.indexOf('name')] || '未知餐厅',
@@ -511,11 +620,11 @@ async function loadRestaurantsFromCSV() {
         address: values[headers.indexOf('address')] || '',
         recommend: values[headers.indexOf('recommend')] || ''
       };
-    }).filter(r => r.name !== '未知餐厅'); // 过滤无效数据
+    }).filter(r => r.name !== '未知餐厅');
 
   } catch (error) {
     console.error("CSV加载失败详情：", error);
-    throw error; // 抛出错误让外层处理
+    throw error;
   }
 }
 
@@ -552,7 +661,7 @@ function initTypeCheckboxes() {
     });
 }
 
-// 初始化排除列表（新增speed显示）
+// 初始化排除列表
 function initExcludeList() {
     const box = document.getElementById("excludeList");
     box.innerHTML = "";
@@ -560,7 +669,6 @@ function initExcludeList() {
         const item = document.createElement("label");
         item.className = "exclude-item";
         const checked = excludedIds.includes(r.id) ? "checked" : "";
-        // 新增：排除列表显示速度信息
         item.innerHTML = `<input type="checkbox" value="${r.id}" ${checked}>
             <span>${r.name} | ${r.distance}分钟 | ¥${r.price} | 速度${r.speed}分钟</span>`;
         item.querySelector("input").addEventListener("change", e => {
@@ -576,7 +684,7 @@ function initExcludeList() {
     });
 }
 
-// 绑定事件（新增重置筛选事件）
+// 绑定事件
 function bindEvents() {
     document.getElementById("randomBtn").onclick = randomRestaurant;
     document.getElementById("clearExcludeBtn").onclick = () => {
@@ -587,13 +695,10 @@ function bindEvents() {
     document.getElementById("feedbackBtn").onclick = () => {
         window.open(FEEDBACK_FORM_URL);
     };
-    // 新增：重置筛选条件事件
     document.getElementById("resetFilterBtn").onclick = () => {
-        // 重置价格/步行/速度单选框
         ['priceRange', 'distanceRange', 'speedRange'].forEach(name => {
             document.querySelectorAll(`input[name="${name}"]`).forEach(input => input.checked = false);
         });
-        // 重置菜系复选框
         document.querySelectorAll("#typeCheckboxes .checkbox-item").forEach(label => {
             const input = label.querySelector("input");
             input.checked = false;
@@ -602,51 +707,38 @@ function bindEvents() {
     };
 }
 
-// 核心：随机餐厅（新增speed筛选逻辑 + 按钮禁用 + 空数据友好提示）
+// 随机餐厅
 function randomRestaurant() {
     const btn = document.getElementById("randomBtn");
-    btn.disabled = true; // 禁用按钮避免重复点击
+    btn.disabled = true;
     try {
-        // 1. 获取各筛选条件
         const selectedPrice = document.querySelector('input[name="priceRange"]:checked')?.value;
         const selectedDistance = document.querySelector('input[name="distanceRange"]:checked')?.value;
         const selectedSpeed = document.querySelector('input[name="speedRange"]:checked')?.value;
         const types = Array.from(document.querySelectorAll("#typeCheckboxes input:checked")).map(i => i.value);
 
-        // 筛选逻辑
         let list = restaurantList.filter(r => {
-            // 排除勾选的餐厅
             if (excludedIds.includes(r.id)) return false;
-            
-            // 价格区间筛选
             if (selectedPrice) {
                 if (selectedPrice === "under100" && r.price >= 100) return false;
                 if (selectedPrice === "100to200" && (r.price < 100 || r.price > 200)) return false;
                 if (selectedPrice === "over200" && r.price <= 200) return false;
             }
-
-            // 步行时间筛选
             if (selectedDistance) {
                 if (selectedDistance === "under5" && r.distance > 5) return false;
                 if (selectedDistance === "5to10" && (r.distance <= 5 || r.distance > 10)) return false;
                 if (selectedDistance === "over10" && r.distance <= 10) return false;
             }
-
-            // 新增：速度筛选逻辑
             if (selectedSpeed) {
                 if (selectedSpeed === "under20" && r.speed > 20) return false;
                 if (selectedSpeed === "20to40" && (r.speed <= 20 || r.speed > 40)) return false;
                 if (selectedSpeed === "over40" && r.speed <= 40) return false;
             }
-
-            // 菜系筛选
             if (types.length && !types.includes(r.type)) return false;
-
             return true;
         });
 
         if (!list.length) {
-            // 友好的空数据提示
             document.getElementById("mainResult").innerHTML = `
                 <div class="result-card main" style="text-align:center;padding:32px;">
                     <span style="color:var(--text-secondary);">😯 暂无符合条件的餐厅</span>
@@ -659,29 +751,27 @@ function randomRestaurant() {
             return;
         }
 
-        // 随机排序
         list = list.sort(() => Math.random() - 0.5);
         const main = list[0];
         const alts = list.slice(1, 3);
-
-        // 渲染结果
         renderMain(main);
         renderAlt(alts);
     } catch (e) {
         console.error("随机餐厅失败：", e);
         alert("生成推荐失败，请重试！");
     } finally {
-        btn.disabled = false; // 恢复按钮
+        btn.disabled = false;
     }
 }
 
-// 渲染首选结果（新增speed显示）
+// 渲染首选结果（适配2行3列布局）
 function renderMain(r) {
     document.getElementById("mainResult").innerHTML = `
     <div class="result-card main">
         <span class="tag">今日首选</span>
         <div class="restaurant-name">${r.name}</div>
         <div class="info-grid">
+            <!-- 第一行：人均、步行、速度 -->
             <div class="info-item">
                 <span class="info-label">人均</span>
                 <span class="info-value">¥${r.price}</span>
@@ -691,9 +781,10 @@ function renderMain(r) {
                 <span class="info-value">${r.distance}分钟</span>
             </div>
             <div class="info-item">
-                <span class="info-label">速度</span> <!-- 新增 -->
-                <span class="info-value">${r.speed}分钟</span> <!-- 新增 -->
+                <span class="info-label">速度</span>
+                <span class="info-value">${r.speed}分钟</span>
             </div>
+            <!-- 第二行：菜系、地址、占位 -->
             <div class="info-item">
                 <span class="info-label">菜系</span>
                 <span class="info-value">${r.type}</span>
@@ -702,14 +793,13 @@ function renderMain(r) {
                 <span class="info-label">地址</span>
                 <span class="info-value">${r.address || "无"}</span>
             </div>
-            <!-- 补充一行占位，保持排版美观 -->
             <div class="info-item"></div>
         </div>
         ${r.recommend ? `<div class="recommend">推荐：${r.recommend}</div>` : ""}
     </div>`;
 }
 
-// 渲染备选结果（新增speed显示）
+// 渲染备选结果
 function renderAlt(list) {
     const cont = document.getElementById("alternateResult");
     if (!list.length) { 
@@ -726,7 +816,7 @@ function renderAlt(list) {
             </div>
             <div class="info-row">
                 <span>${r.distance}分钟</span>
-                <span>${r.speed}分钟</span> <!-- 新增：速度 -->
+                <span>${r.speed}分钟</span>
                 <span>${r.type}</span>
             </div>
         </div>`;
