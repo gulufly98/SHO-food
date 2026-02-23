@@ -1,3 +1,5 @@
 /*
   Access-Control-Allow-Origin: *
-  Cache-Control: max-age=60
+  Access-Control-Allow-Methods: GET, HEAD
+  Access-Control-Allow-Headers: Content-Type, Accept
+  Cache-Control: max-age=60, must-revalidate
