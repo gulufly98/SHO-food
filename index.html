@@ -320,6 +320,22 @@
         .feedback-btn:active {
             background-color: var(--accent-light);
         }
+        /* 新增加载状态样式 */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(248,245,240,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+            color: var(--accent);
+            font-size: 16px;
+        }
+        .hidden { display: none; }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
@@ -402,6 +418,10 @@
                 <label class="filter-label">菜系选择</label>
                 <div class="type-checkboxes" id="typeCheckboxes"></div>
             </div>
+            <!-- 新增：重置筛选按钮 -->
+            <div class="action-btns" style="margin-top:20px;">
+                <button class="action-btn" id="resetFilterBtn">重置筛选条件</button>
+            </div>
         </div>
     </div>
 
@@ -421,6 +441,8 @@
 
     <button class="feedback-btn" id="feedbackBtn">推荐餐厅</button>
 </div>
+<!-- 新增：加载状态遮罩 -->
+<div class="loading-overlay hidden" id="loadingOverlay">加载餐厅数据中...</div>
 
 <script>
 // ==============================================
@@ -435,18 +457,25 @@ const EXCLUDE_KEY = "infinia_food_exclude";
 
 window.onload = async function () {
   initLocalData();
-  await loadRestaurantsFromCSV();
-  initCollapsePanel();
-  initTypeCheckboxes();
-  initExcludeList();
-  bindEvents();
-  randomRestaurant();
+  const loading = document.getElementById("loadingOverlay");
+  loading.classList.remove("hidden"); // 显示加载状态
+  try {
+    await loadRestaurantsFromCSV();
+    initCollapsePanel();
+    initTypeCheckboxes();
+    initExcludeList();
+    bindEvents();
+    randomRestaurant();
+  } catch (e) {
+    console.error("初始化失败：", e);
+    alert("初始化失败，请刷新页面重试！");
+  } finally {
+    loading.classList.add("hidden"); // 隐藏加载状态
+  }
 };
 
-// 从CSV读取数据（新增speed列解析）
+// 从CSV读取数据（完整解析逻辑 + 鲁棒性优化）
 async function loadRestaurantsFromCSV() {
-  // 你的CSV链接（确保是HTTPS）
-  const CSV_URL = "https://raw.githubusercontent.com/gulufly98/SHO-food/refs/heads/main/restaurants.csv";
   try {
     // 显式配置跨域和缓存
     const response = await fetch(CSV_URL, {
@@ -464,11 +493,29 @@ async function loadRestaurantsFromCSV() {
     }
 
     const csvText = await response.text();
-    // 后续解析CSV的逻辑（你的原有代码）
-    // ...
+    // 完整CSV解析逻辑
+    const lines = csvText.trim().split('\n').filter(line => line.trim()); // 过滤空行
+    if (lines.length <= 1) throw new Error("CSV数据为空或格式错误");
+    
+    const headers = lines[0].split(',').map(h => h.trim()); // 提取表头
+    restaurantList = lines.slice(1).map((line, idx) => {
+      const values = line.split(',').map(v => v.trim());
+      // 映射为餐厅对象，做类型转换和兜底
+      return {
+        id: parseInt(values[headers.indexOf('id')] || idx + 1),
+        name: values[headers.indexOf('name')] || '未知餐厅',
+        price: parseInt(values[headers.indexOf('price')] || 0),
+        distance: parseInt(values[headers.indexOf('distance')] || 0),
+        speed: parseInt(values[headers.indexOf('speed')] || 0),
+        type: values[headers.indexOf('type')] || '未知菜系',
+        address: values[headers.indexOf('address')] || '',
+        recommend: values[headers.indexOf('recommend')] || ''
+      };
+    }).filter(r => r.name !== '未知餐厅'); // 过滤无效数据
+
   } catch (error) {
     console.error("CSV加载失败详情：", error);
-    alert("数据加载失败，请刷新页面重试！");
+    throw error; // 抛出错误让外层处理
   }
 }
 
@@ -529,7 +576,7 @@ function initExcludeList() {
     });
 }
 
-// 绑定事件
+// 绑定事件（新增重置筛选事件）
 function bindEvents() {
     document.getElementById("randomBtn").onclick = randomRestaurant;
     document.getElementById("clearExcludeBtn").onclick = () => {
@@ -540,61 +587,92 @@ function bindEvents() {
     document.getElementById("feedbackBtn").onclick = () => {
         window.open(FEEDBACK_FORM_URL);
     };
+    // 新增：重置筛选条件事件
+    document.getElementById("resetFilterBtn").onclick = () => {
+        // 重置价格/步行/速度单选框
+        ['priceRange', 'distanceRange', 'speedRange'].forEach(name => {
+            document.querySelectorAll(`input[name="${name}"]`).forEach(input => input.checked = false);
+        });
+        // 重置菜系复选框
+        document.querySelectorAll("#typeCheckboxes .checkbox-item").forEach(label => {
+            const input = label.querySelector("input");
+            input.checked = false;
+            label.classList.remove("checked");
+        });
+    };
 }
 
-// 核心：随机餐厅（新增speed筛选逻辑）
+// 核心：随机餐厅（新增speed筛选逻辑 + 按钮禁用 + 空数据友好提示）
 function randomRestaurant() {
-    // 1. 获取各筛选条件
-    const selectedPrice = document.querySelector('input[name="priceRange"]:checked')?.value;
-    const selectedDistance = document.querySelector('input[name="distanceRange"]:checked')?.value;
-    const selectedSpeed = document.querySelector('input[name="speedRange"]:checked')?.value; // 新增
-    const types = Array.from(document.querySelectorAll("#typeCheckboxes input:checked")).map(i => i.value);
+    const btn = document.getElementById("randomBtn");
+    btn.disabled = true; // 禁用按钮避免重复点击
+    try {
+        // 1. 获取各筛选条件
+        const selectedPrice = document.querySelector('input[name="priceRange"]:checked')?.value;
+        const selectedDistance = document.querySelector('input[name="distanceRange"]:checked')?.value;
+        const selectedSpeed = document.querySelector('input[name="speedRange"]:checked')?.value;
+        const types = Array.from(document.querySelectorAll("#typeCheckboxes input:checked")).map(i => i.value);
 
-    // 筛选逻辑
-    let list = restaurantList.filter(r => {
-        // 排除勾选的餐厅
-        if (excludedIds.includes(r.id)) return false;
-        
-        // 价格区间筛选
-        if (selectedPrice) {
-            if (selectedPrice === "under100" && r.price >= 100) return false;
-            if (selectedPrice === "100to200" && (r.price < 100 || r.price > 200)) return false;
-            if (selectedPrice === "over200" && r.price <= 200) return false;
+        // 筛选逻辑
+        let list = restaurantList.filter(r => {
+            // 排除勾选的餐厅
+            if (excludedIds.includes(r.id)) return false;
+            
+            // 价格区间筛选
+            if (selectedPrice) {
+                if (selectedPrice === "under100" && r.price >= 100) return false;
+                if (selectedPrice === "100to200" && (r.price < 100 || r.price > 200)) return false;
+                if (selectedPrice === "over200" && r.price <= 200) return false;
+            }
+
+            // 步行时间筛选
+            if (selectedDistance) {
+                if (selectedDistance === "under5" && r.distance > 5) return false;
+                if (selectedDistance === "5to10" && (r.distance <= 5 || r.distance > 10)) return false;
+                if (selectedDistance === "over10" && r.distance <= 10) return false;
+            }
+
+            // 新增：速度筛选逻辑
+            if (selectedSpeed) {
+                if (selectedSpeed === "under20" && r.speed > 20) return false;
+                if (selectedSpeed === "20to40" && (r.speed <= 20 || r.speed > 40)) return false;
+                if (selectedSpeed === "over40" && r.speed <= 40) return false;
+            }
+
+            // 菜系筛选
+            if (types.length && !types.includes(r.type)) return false;
+
+            return true;
+        });
+
+        if (!list.length) {
+            // 友好的空数据提示
+            document.getElementById("mainResult").innerHTML = `
+                <div class="result-card main" style="text-align:center;padding:32px;">
+                    <span style="color:var(--text-secondary);">😯 暂无符合条件的餐厅</span>
+                    <p style="margin-top:8px;font-size:14px;color:var(--text-secondary);">
+                        可尝试放宽筛选条件或取消排除部分餐厅
+                    </p>
+                </div>
+            `;
+            document.getElementById("alternateResult").innerHTML = "";
+            return;
         }
 
-        // 步行时间筛选
-        if (selectedDistance) {
-            if (selectedDistance === "under5" && r.distance > 5) return false;
-            if (selectedDistance === "5to10" && (r.distance <= 5 || r.distance > 10)) return false;
-            if (selectedDistance === "over10" && r.distance <= 10) return false;
-        }
+        // 随机排序
+        list = list.sort(() => Math.random() - 0.5);
+        const main = list[0];
+        const alts = list.slice(1, 3);
 
-        // 新增：速度筛选逻辑
-        if (selectedSpeed) {
-            if (selectedSpeed === "under20" && r.speed > 20) return false;
-            if (selectedSpeed === "20to40" && (r.speed <= 20 || r.speed > 40)) return false;
-            if (selectedSpeed === "over40" && r.speed <= 40) return false;
-        }
-
-        // 菜系筛选
-        if (types.length && !types.includes(r.type)) return false;
-
-        return true;
-    });
-
-    if (!list.length) {
-        alert("无符合条件餐厅");
-        return;
+        // 渲染结果
+        renderMain(main);
+        renderAlt(alts);
+    } catch (e) {
+        console.error("随机餐厅失败：", e);
+        alert("生成推荐失败，请重试！");
+    } finally {
+        btn.disabled = false; // 恢复按钮
     }
-
-    // 随机排序
-    list = list.sort(() => Math.random() - 0.5);
-    const main = list[0];
-    const alts = list.slice(1, 3);
-
-    // 渲染结果
-    renderMain(main);
-    renderAlt(alts);
 }
 
 // 渲染首选结果（新增speed显示）
