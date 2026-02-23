@@ -445,32 +445,30 @@ window.onload = async function () {
 
 // 从CSV读取数据（新增speed列解析）
 async function loadRestaurantsFromCSV() {
+  // 你的CSV链接（确保是HTTPS）
+  const CSV_URL = "https://gulufly98.github.io/SHO-food/restaurants.csv";
   try {
-    document.getElementById("randomBtn").disabled = true;
-    document.getElementById("randomBtn").innerText = "加载中...";
-    const res = await fetch(CSV_URL);
-    const text = await res.text();
-    const lines = text.split("\n").filter(line => line.trim());
-    const headers = lines[0].split(",");
-    restaurantList = lines.slice(1).map((line, idx) => {
-      const cols = line.split(",");
-      return {
-        id: idx + 1,
-        name: cols[0] || "",
-        price: parseInt(cols[1]) || 0,
-        distance: parseInt(cols[2]) || 99,
-        speed: parseInt(cols[6]) || 0, // 新增：解析speed列（第7列，索引6）
-        type: cols[3] || "其他",
-        address: cols[4] || "",
-        recommend: cols[5] || ""
-      };
+    // 显式配置跨域和缓存
+    const response = await fetch(CSV_URL, {
+      method: "GET",
+      mode: "cors", // 强制开启跨域
+      cache: "no-cache", // 禁用缓存
+      headers: {
+        "Accept": "text/csv" // 指定接收CSV格式
+      }
     });
-    document.getElementById("randomBtn").disabled = false;
-    document.getElementById("randomBtn").innerText = "随机今日干饭";
-  } catch (e) {
-    alert("加载失败：" + e.message);
-    document.getElementById("randomBtn").disabled = false;
-    document.getElementById("randomBtn").innerText = "重试";
+
+    // 检查请求是否成功
+    if (!response.ok) {
+      throw new Error(`请求失败，状态码：${response.status}`);
+    }
+
+    const csvText = await response.text();
+    // 后续解析CSV的逻辑（你的原有代码）
+    // ...
+  } catch (error) {
+    console.error("CSV加载失败详情：", error);
+    alert("数据加载失败，请刷新页面重试！");
   }
 }
 
