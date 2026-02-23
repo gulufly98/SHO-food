@@ -446,7 +446,7 @@ window.onload = async function () {
 // 从CSV读取数据（新增speed列解析）
 async function loadRestaurantsFromCSV() {
   // 你的CSV链接（确保是HTTPS）
-  const CSV_URL = "https://gulufly98.github.io/SHO-food/restaurants.csv";
+  const CSV_URL = "https://raw.githubusercontent.com/gulufly98/SHO-food/refs/heads/main/restaurants.csv";
   try {
     // 显式配置跨域和缓存
     const response = await fetch(CSV_URL, {
